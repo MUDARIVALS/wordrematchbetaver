@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한국 끝말잇기 대결!🔥 _ 버전 2</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --my-color: #10b981;
+            --opp-color: #ef4444;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Jua', sans-serif; letter-spacing: 1px; }
+        body { background: var(--bg-dark); color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; overflow-x: hidden; }
+        
+        .game-container { width: 100%; max-width: 600px; background: var(--card-bg); border-radius: 24px; padding: 30px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); border: 1px solid #334155; position: relative; transition: all 0.3s; }
+        
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h1 { font-size: 2.3rem; background: linear-gradient(to right, #6366f1, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; line-height: 1.3; }
+        
+        .setup-box { background: #0f172a; padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center; border: 1px solid #334155; }
+        .peer-id-display { font-size: 1.2rem; color: #6366f1; font-weight: bold; margin: 10px 0; cursor: pointer; background: #1e293b; padding: 10px; border-radius: 8px; display: inline-block; }
+        
+        .scoreboard { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 25px; display: none; }
+        .player-card { flex: 1; padding: 15px; border-radius: 16px; background: #0f172a; border: 2px solid transparent; text-align: center; transition: all 0.3s ease; }
+        .player-card.active { border-color: var(--curr-color); box-shadow: 0 0 15px var(--curr-color); transform: scale(1.03); }
+        .my-title { color: var(--my-color); font-size: 1.2rem; }
+        .opp-title { color: var(--opp-color); font-size: 1.2rem; }
+        .score { font-size: 2rem; font-weight: 800; margin-top: 5px; }
+        .lives { font-size: 1.4rem; color: #f43f5e; margin-top: 5px; letter-spacing: 4px; }
+        
+        .timer-container { width: 100%; height: 12px; background: #334155; border-radius: 6px; margin-bottom: 25px; overflow: hidden; display: none;}
+        .timer-bar { height: 100%; width: 100%; background: #10b981; transition: width 0.1s linear; }
+
+        .word-display { background: #0f172a; border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 25px; min-height: 140px; display: none; flex-direction: column; justify-content: center; align-items: center; border: 1px solid #1e293b; }
+        .current-word { font-size: 3rem; font-weight: 800; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .word-meaning { font-size: 1rem; color: #94a3b8; margin-top: 12px; line-height: 1.4; }
+        
+        .input-group { display: none; gap: 10px; margin-bottom: 20px; }
+        input[type="text"] { flex: 1; background: #0f172a; border: 2px solid #334155; border-radius: 12px; padding: 15px 20px; color: white; font-size: 1.4rem; outline: none; }
+        input[type="text"]:focus { border-color: var(--primary); }
+        button { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 0 25px; font-size: 1.3rem; cursor: pointer; transition: 0.2s; }
+        button:hover { background: var(--primary-hover); }
+        button:disabled { background: #475569; cursor: not-allowed; }
+
+        .system-msg { text-align: center; color: #f43f5e; font-size: 1.1rem; min-height: 26px; margin-bottom: 15px; }
+        .history { max-height: 130px; overflow-y: auto; background: #0f172a; padding: 15px; border-radius: 12px; font-size: 1rem; color: #94a3b8; display: none; border: 1px solid #1e293b; }
+        .history-item { margin-bottom: 6px; display: flex; justify-content: space-between; }
+
+        .admin-panel { display: none; position: fixed; top: 10px; right: 10px; width: 420px; height: calc(100vh - 20px); background: rgba(15, 23, 42, 0.98); border: 3px dashed #ef4444; border-radius: 16px; padding: 15px; z-index: 999; overflow-y: auto; box-shadow: 0 0 30px rgba(239, 68, 68, 0.5); }
+        .admin-title { font-size: 1.4rem; color: #f43f5e; text-align: center; margin-bottom: 12px; border-bottom: 2px solid #ef4444; padding-bottom: 5px; text-shadow: 0 0 5px red; }
+        
+        .master-control-ui { background: #0f172a; border: 2px solid #6366f1; border-radius: 10px; padding: 10px; margin-bottom: 15px; text-align: center; }
+        .master-control-ui p { font-size: 0.9rem; color: #818cf8; margin-bottom: 8px; }
+        .master-btn-group { display: flex; gap: 6px; justify-content: center; }
+        .master-ui-btn { flex: 1; padding: 8px 5px; font-size: 0.85rem; border-radius: 6px; border: none; cursor: pointer; color: white; transition: 0.2s; font-weight: bold; }
+        .btn-all-on { background: #059669; }
+        .btn-all-on:hover { background: #10b981; }
+        .btn-all-off { background: #dc2626; }
+        .btn-all-off:hover { background: #ef4444; }
+        .btn-all-rand { background: #7c3aed; }
+        .btn-all-rand:hover { background: #8b5cf6; }
+
+        .admin-sec { margin-bottom: 15px; background: #1e293b; padding: 10px; border-radius: 8px; border: 1px solid #475569; }
+        .admin-sec-title { font-size: 1rem; color: #38bdf8; margin-bottom: 8px; border-left: 3px solid #38bdf8; padding-left: 5px; }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .hack-btn { background: #991b1b; color: white; font-size: 0.8rem; padding: 6px; border-radius: 6px; border: 1px solid #f43f5e; cursor: pointer; transition: 0.1s; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hack-btn:hover { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        .hack-active { background: #10b981 !important; border-color: #34d399 !important; text-shadow: 0 0 3px #000; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 10; }
+        .modal-content { background: var(--card-bg); padding: 40px; border-radius: 24px; text-align: center; max-width: 400px; width: 90%; border: 2px solid #334155; }
+        .modal h2 { font-size: 2.5rem; margin-bottom: 15px; color: #f59e0b; }
+        .restart-btn { width: 100%; padding: 15px; background: var(--primary); border-radius: 12px; border: none; color: white; font-size: 1.3rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container" id="main-container">
+        <div class="header">
+            <h1>한국 끝말잇기 대결!🔥 _ 버전 2</h1>
+            <p id="status-text" style="color: #6366f1; font-size: 1rem; margin-top: 5px;">네트워크 연결 준비 중... [키보드 1번 연타: 어드민 패널]</p>
+        </div>
+
+        <div class="setup-box" id="setup-box">
+            <p style="color: #94a3b8; margin-bottom: 10px;">상대방에게 내 코드를 공유하거나, 상대방 코드를 입력하세요.</p>
+            <div class="peer-id-display" id="my-id-display" onclick="copyMyId()">코드 생성 중...</div>
+            <div style="margin: 10px 0; color:#64748b;">OR</div>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+                <input type="text" id="peer-id-input" placeholder="상대방 코드 4자리" style="padding: 10px; font-size: 1.1rem; max-width: 200px; text-align: center;">
+                <button onclick="connectToPeer()" style="padding: 0 20px; font-size:1.1rem;">대결 신청</button>
+            </div>
+        </div>
+
+        <div class="scoreboard" id="scoreboard">
+            <div class="player-card" id="my-card" style="--curr-color: var(--my-color);">
+                <div class="my-title">나 (YOU)</div>
+                <div class="score" id="my-score">0</div>
+                <div class="lives" id="my-lives">❤️❤️</div>
+            </div>
+            <div class="player-card" id="opp-card" style="--curr-color: var(--opp-color);">
+                <div class="opp-title">상대방 (OPP)</div>
+                <div class="score" id="opp-score">0</div>
+                <div class="lives" id="opp-lives">❤️❤️</div>
+            </div>
+        </div>
+
+        <div class="timer-container" id="timer-container"><div class="timer-bar" id="timer-bar"></div></div>
+
+        <div class="word-display" id="word-display">
+            <div class="current-word" id="current-word">-</div>
+            <div class="word-meaning" id="word-meaning">상대방과 동기화하는 중입니다...</div>
+        </div>
+
+        <div class="system-msg" id="system-msg"></div>
+
+        <div class="input-group" id="input-group">
+            <input type="text" id="word-input" placeholder="단어 입력 후 Enter" autocomplete="off" disabled>
+            <button id="submit-btn" disabled>제출</button>
+        </div>
+
+        <div class="history" id="history-box"></div>
+    </div>
+
+    <div class="admin-panel" id="admin-panel">
+        <div class="admin-title" id="admin-panel-title">⚡ MUDA SUPREME CONTROL CENTER ⚡</div>
+        
+        <div class="master-control-ui" id="master-ui-container">
+            <p>🎛️ MASTER ALL-IN-ONE SYSTEM INTERFACE</p>
+            <div class="master-btn-group">
+                <button class="master-ui-btn btn-all-on" onclick="masterToggleAll(true)">전체 핵 가동</button>
+                <button class="master-ui-btn btn-all-off" onclick="masterToggleAll(false)">전체 해제</button>
+                <button class="master-ui-btn btn-all-rand" onclick="masterToggleRandom()">무작위 교란</button>
+            </div>
+        </div>
+
+        <div class="admin-sec" id="sec-light" style="display:none;">
+            <div class="admin-sec-title">라이트 제어 치트 (3434 전용 5개)</div>
+            <div class="admin-grid" id="light-hacks-box"></div>
+        </div>
+
+        <div class="admin-sec" id="sec-m1" style="display:none;">
+            <div class="admin-sec-title">다이렉트 특수 핵 (1-10)</div>
+            <div class="admin-grid" id="direct-hacks-box"></div>
+        </div>
+
+        <div class="admin-sec" id="sec-m2" style="display:none;">
+            <div class="admin-sec-title">자율 변조 데이터 모듈 (11-100)</div>
+            <div class="admin-grid" id="batch-hacks-1"></div>
+        </div>
+
+        <div class="admin-sec" id="sec-m3" style="display:none;">
+            <div class="admin-sec-title">디바이스 환경 테러 및 마스터 치트 (101-205)</div>
+            <div class="admin-grid" id="batch-hacks-2"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="game-over-modal">
+        <div class="modal-content">
+            <h2 id="winner-title">결과</h2>
+            <p id="game-over-reason"></p>
+            <button class="restart-btn" onclick="location.reload()">새 게임 찾기</button>
+        </div>
+    </div>
+
+    <script>
+        let peer = null, conn = null, amIHost = false, isMyTurn = false;
+        let currentWord = '', usedWords = new Set(), myScore = 0, oppScore = 0, myLives = 2, oppLives = 2;
+        let timer = null, timeLeft = 15; const MAX_TIME = 15;
+        const startWords = ['국어', '세계', '노트', '컴퓨터', '하늘', '과자', '인간', '사랑', '지구', '태양'];
+
+        let activeHacks = {};
+        let lastOneKeyTime = 0;
+        let currentMode = '';
+
+        const lightHacks = [
+            { id: 301, name: "내 목숨 +1 충전" },
+            { id: 302, name: "내 점수 +50점 보너스" },
+            { id: 303, name: "타이머 살짝 연장 (5초)" },
+            { id: 304, name: "한 글자 단어 일시 통과" },
+            { id: 305, name: "입력창 초기화 리프레시" }
+        ];
+
+        const baseHackNames = [
+            "상대 즉시 처형", "내 목숨 무한대", "내 점수 +99999", "상대 점수 0점화", "상대 타이머 0초화", 
+            "내 타이머 고정", "자동 정답 매크로", "필터 전면 바이패스", "글자 강제 변경", "턴 강제 강탈",
+            "상대 키보드 먹통", "단어 글자수 제한 해제", "상대 목숨 1개로 조정", "강제 무승부 선언", "한 글자 단어 허용",
+            "동일 단어 중복 허용", "두음법칙 무제한 무시", "초성 힌트 실시간 강탈", "상대 화면 블랙아웃", "내 하트 100개 충전",
+            "점수 획득량 100배", "사전 검증 0.0초 스킵", "강제 턴 스킵권 발동", "상대방 닉네임 강제 변경", "상대방 강제 강퇴",
+            "방장 권한 최고 영구 탈환", "네트워크 핑 폭탄 전송", "상대 오답 강제 유도", "글자 지우기 무한 허용", "상대방 타이머 가속",
+            "디버그 모드 레이더 가동", "모든 단어 정답 처리", "백도어 패킷 강제 주입", "상대 하트 실시간 압류", "단어 무단 복제 매크로",
+            "상대 타이머 일시 정지", "스피드 레이스 모드", "점수 차트 조작", "상대 입력 글자 변조", "UI 상하 반전 테러",
+            "사전 검색 강제 성공", "강제 도배 방지 무력화", "외계어 통과 승인", "종성 결합 완전 분해", "치트 감지기 무력화",
+            "상대 패킷 실시간 모니터링", "우주 스킨 강제 전환", "강제 이모지 폭탄", "엔터키 자동 난타", "서버 세션 탈취",
+            "크래시 코드 전송", "상대 마우스 가두기", "딜레이 0초 연사", "가짜 승리 패킷 위조", "관전 모드 강제 전환",
+            "단어 자동 추천봇 가동", "상대 콤보 초기화", "내 하트 실시간 자동 재생", "점수 무한 파밍", "어드민 권한 영구 고정",
+            "타이머 바 색상 무지개화", "강제 하이라이트 레이저", "상대 채팅 금지", "모든 글자 '다'로 통일", "글자 입력 폰트 크기 10배",
+            "배경화면 사이키델릭 클럽 무드", "상대 화면 180도 회전", "제출 사운드 매크로 폭격", "페이크 타임아웃 전송", "내 스코어 실시간 암호화",
+            "상대 점수 빼앗아오기", "네트워크 강제 끊김 위조", "사전 정의 커스텀 조작", "어드민 전용 오라 생성", "사전 통과 프리패스",
+            "상대 하트 반쪽 내기", "글자 자동 완성 플러그인", "타이머 한계 돌파 (999초)", "상대 입력창 비활성화", "내 점수 마이너스 방지",
+            "상대방 기권 강제 유도", "메인 테마 다크니스 전환", "네트워크 패킷 딜레이 10초 부여", "단어 힌트 무한 매칭", "우회 프록시 강제 활성화",
+            "상대 브라우저 강제 스크롤", "키 입력 소리 증폭", "가짜 관리자 경고 메시지", "상대 화면 흑백 처리", "텍스트 쉐도우 크리티컬 효과"
+        ];
+
+        let fullHacks = [];
+        for(let i=1; i<=205; i++) {
+            let name = baseHackNames[(i-1) % baseHackNames.length];
+            fullHacks.push({ id: i, name: `${name} [v.${i}]` });
+        }
+
+        function buildAdminPanels() {
+            const lBox = document.getElementById('light-hacks-box');
+            lightHacks.forEach(h => {
+                lBox.innerHTML += `<div class="hack-btn" id="h${h.id}" onclick="execLightHack(${h.id})">${h.name}</div>`;
+            });
+
+            const dirBox = document.getElementById('direct-hacks-box');
+            const b1 = document.getElementById('batch-hacks-1');
+            const b2 = document.getElementById('batch-hacks-2');
+
+            fullHacks.forEach(h => {
+                const btnHtml = `<div class="hack-btn" id="h${h.id}" onclick="execHack(${h.id})">${h.id}. ${h.name}</div>`;
+                if(h.id <= 10) dirBox.innerHTML += btnHtml;
+                else if(h.id <= 100) b1.innerHTML += btnHtml;
+                else b2.innerHTML += btnHtml;
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '1') {
+                const currentTime = new Date().getTime();
+                const timeDiff = currentTime - lastOneKeyTime;
+                if (timeDiff > 0 && timeDiff < 400) {
+                    lastOneKeyTime = 0;
+                    const pw = prompt('시큐리티 코드를 주입하세요:');
+                    
+                    if (pw === '이지') {
+                        alert('이거 코드 아닌뒈? ㅋ 업데이트 내역좀 잘봐라');
+                        return;
+                    }
+                    
+                    if (pw === '6677') {
+                        currentMode = '6677';
+                        document.getElementById('admin-panel').style.display = 'block';
+                        document.getElementById('master-ui-container').style.display = 'block';
+                        document.getElementById('sec-m1').style.display = 'block';
+                        document.getElementById('sec-m2').style.display = 'block';
+                        document.getElementById('sec-m3').style.display = 'block';
+                        document.getElementById('sec-light').style.display = 'none';
+                        document.getElementById('admin-panel-title').innerText = "👑 MUDA SUPREME MASTER PANEL (205)";
+                        document.getElementById('main-container').style.marginRight = '440px';
+                        alert('👑 마스터 최고 등급 어드민 권한이 승인되었습니다! (205개 핵 해제)');
+                    } else if (pw === '3434') {
+                        currentMode = '3434';
+                        document.getElementById('admin-panel').style.display = 'block';
+                        document.getElementById('master-ui-container').style.display = 'none';
+                        document.getElementById('sec-m1').style.display = 'none';
+                        document.getElementById('sec-m2').style.display = 'none';
+                        document.getElementById('sec-m3').style.display = 'none';
+                        document.getElementById('sec-light').style.display = 'block';
+                        document.getElementById('admin-panel-title').innerText = "⚙️ MUDA LIGHT PANEL (5)";
+                        document.getElementById('main-container').style.marginRight = '440px';
+                        alert('⚙️ 라이트 하위 등급 어드민 권한이 승인되었습니다. (간단 기능 5개)');
+                    } else if (pw !== null) {
+                        alert('존재하지 않는 코드입니다.');
+                    }
+                } else { lastOneKeyTime = currentTime; }
+            }
+        });
+
+        function masterToggleAll(enable) {
+            fullHacks.forEach(h => {
+                activeHacks[h.id] = enable;
+                const btn = document.getElementById(`h${h.id}`);
+                if (btn) {
+                    if (enable) btn.classList.add('hack-active');
+                    else btn.classList.remove('hack-active');
+                }
+            });
+            showSystemMsg(enable ? "⚡ 전체 205개 치트 데이터가 일제히 주입되었습니다!" : "❌ 모든 핵 모듈이 정지되었습니다.");
+        }
+
+        function masterToggleRandom() {
+            fullHacks.forEach(h => {
+                const rand = Math.random() > 0.5;
+                activeHacks[h.id] = rand;
+                const btn = document.getElementById(`h${h.id}`);
+                if (btn) {
+                    if (rand) btn.classList.add('hack-active');
+                    else btn.classList.remove('hack-active');
+                }
+            });
+            showSystemMsg("🎲 무작위 치트 필터링 난수 조정 완료!");
+        }
+
+        function execLightHack(id) {
+            const btn = document.getElementById(`h${id}`);
+            btn.classList.add('hack-active');
+            setTimeout(() => btn.classList.remove('hack-active'), 500);
+
+            if(id === 301) { myLives = Math.min(2, myLives + 1); updateLivesUI(); showSystemMsg("하트가 1개 충전되었습니다."); }
+            if(id === 302) { myScore += 50; document.getElementById('my-score').innerText = myScore; }
+            if(id === 303) { timeLeft = Math.min(MAX_TIME, timeLeft + 5); }
+            if(id === 304) { activeHacks[14] = true; showSystemMsg("한 글자 제한 임시 해제"); }
+            if(id === 305) { document.getElementById('word-input').value = ''; }
+        }
+
+        function execHack(id) {
+            const btn = document.getElementById(`h${id}`);
+            activeHacks[id] = !activeHacks[id];
+            if (btn) {
+                if (activeHacks[id]) btn.classList.add('hack-active');
+                else btn.classList.remove('hack-active');
+            }
+            switch(id) {
+                case 1:
+                    sendData({ type: 'GAME_OVER', winner: 'OPP', reason: '👑 어드민 권한에 의해 즉시 처형당하셨습니다!' });
+                    endGame('WIN', '어드민 권한 처형 승리!'); break;
+                case 2: myLives = 9999; updateLivesUI(); break;
+                case 3: myScore += 99999; document.getElementById('my-score').innerText = myScore; break;
+                case 4: oppScore = 0; document.getElementById('opp-score').innerText = 0; break;
+                case 5:
+                    sendData({ type: 'GAME_OVER', winner: 'OPP', reason: '시간 초과로 패배하셨습니다!' });
+                    endGame('WIN', '상대방 타임아웃 강제 다운 완료!'); break;
+                case 6: timeLeft = MAX_TIME; break;
+                case 9:
+                    currentWord = prompt("변경할 단어를 입력하세요:", currentWord) || currentWord;
+                    document.getElementById('current-word').innerText = currentWord; break;
+                case 10: isMyTurn = true; setTurnUI(); break;
+                default: showSystemMsg(`[SYSTEM] ${id}번 복합 매트릭스 엔진이 변조되었습니다.`); break;
+            }
+        }
+
+        function initNetwork() {
+            const shortId = Math.floor(1000 + Math.random() * 9000);
+            peer = new Peer(`mudaword-${shortId}`, {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
+            });
+
+            peer.on('open', (id) => {
+                const displayId = id.replace('mudaword-', '');
+                document.getElementById('my-id-display').innerText = `내 방 코드: ${displayId} (클릭 시 복사)`;
+                document.getElementById('status-text').innerText = '상대방의 연결을 기다리는 중...';
+            });
+            
+            peer.on('connection', (connection) => { if (!conn) { conn = connection; amIHost = true; setupConnection(); } });
+            peer.on('error', () => {
+                document.getElementById('status-text').innerText = '네트워크 신호 재보정 중...';
+                setTimeout(() => location.reload(), 1000);
+            });
+        }
+
+        function connectToPeer() {
+            const inputId = document.getElementById('peer-id-input').value.trim();
+            if(!inputId) return alert('코드를 입력하세요.');
+            document.getElementById('status-text').innerText = '상대방 방에 입장 중...';
+            conn = peer.connect(`mudaword-${inputId}`); amIHost = false; setupConnection();
+        }
+
+        function setupConnection() {
+            conn.on('open', () => {
+                document.getElementById('status-text').innerText = '연결 성공! 대결 시작!';
+                document.getElementById('setup-box').style.display = 'none';
+                document.getElementById('scoreboard').style.display = 'flex';
+                document.getElementById('timer-container').style.display = 'block';
+                document.getElementById('word-display').style.display = 'flex';
+                document.getElementById('input-group').style.display = 'flex';
+                document.getElementById('history-box').style.display = 'block';
+                if (!amIHost) sendData({ type: 'READY' });
+            });
+            conn.on('data', (data) => handleRemoteData(data));
+            conn.on('close', () => location.reload());
+        }
+
+        function sendData(obj) { if (conn && conn.open) conn.send(obj); }
+        function copyMyId() {
+            const text = document.getElementById('my-id-display').innerText.split(': ')[1].split(' ')[0];
+            navigator.clipboard.writeText(text); alert('코드가 복사되었습니다: ' + text);
+        }
+
+        function handleRemoteData(data) {
+            switch(data.type) {
+                case 'READY':
+                    if (amIHost) {
+                        isMyTurn = true;
+                        currentWord = startWords[Math.floor(Math.random() * startWords.length)];
+                        usedWords.add(currentWord);
+                        sendData({ type: 'START', word: currentWord, used: Array.from(usedWords) });
+                        startGame();
+                    } break;
+                case 'START': currentWord = data.word; usedWords = new Set(data.used); isMyTurn = false; startGame(); break;
+                case 'TURN_PASS':
+                    currentWord = data.word; usedWords.add(data.word); oppScore = data.oppScore;
+                    document.getElementById('opp-score').innerText = oppScore;
+                    addHistory('opp', data.word);
+                    document.getElementById('current-word').innerText = currentWord;
+                    document.getElementById('word-meaning').innerText = data.meaning;
+                    isMyTurn = true; setTurnUI(); break;
+                case 'WRONG_ANSWER':
+                    oppLives = data.oppLives; updateLivesUI();
+                    if (oppLives <= 0) endGame('WIN', '상대방의 목숨이 모두 소진되었습니다!');
+                    else { isMyTurn = true; setTurnUI(); } break;
+                case 'GAME_OVER': endGame(data.winner === 'YOU' ? 'LOSE' : 'WIN', data.reason); break;
+            }
+        }
+
+        function getInitialChar(char) {
+            const charCode = char.charCodeAt(0) - 44032;
+            if (charCode < 0 || charCode > 11171) return char;
+            const cho = Math.floor(charCode / 588), jung = Math.floor((charCode % 588) / 28), jong = charCode % 28;
+            if (cho === 5 && [2, 4, 6, 8, 13, 20].includes(jung)) return String.fromCharCode(44032 + (11 * 588) + (jung * 28) + jong);
+            if (cho === 5 && [0, 1, 7, 11, 12, 18].includes(jung)) return String.fromCharCode(44032 + (2 * 588) + (jung * 28) + jong);
+            if (cho === 2 && [4, 6, 8, 13, 20].includes(jung)) return String.fromCharCode(44032 + (11 * 588) + (jung * 28) + jong);
+            return char;
+        }
+
+        async function checkValidDictionary(word) {
+            if(activeHacks[8] || activeHacks[22] || activeHacks[32]) return { valid: true, meaning: "👑 무조건 통과 패스포트 가동 중." };
+            if (!activeHacks[12] && !activeHacks[14] && (word.length < 2 || word.length > 8)) return { valid: false, msg: "단어는 2~8글자 사이여야 합니다." };
+            if (!/^[가-힣]+$/.test(word)) return { valid: false, msg: "올바른 한글 단어가 아닙니다." };
+            if (!activeHacks[16]) {
+                const halfLen = Math.floor(word.length / 2);
+                if (word.length % 2 === 0 && word.substring(0, halfLen) === word.substring(halfLen)) return { valid: false, msg: "동일 반복 단어 사용 금지!" };
+            }
+            try {
+                const response = await fetch(`https://ko.wiktionary.org/w/api.php?action=query&titles=${encodeURIComponent(word)}&format=json&origin=*`);
+                const data = await response.json();
+                if (Object.keys(data.query.pages)[0] === "-1") return { valid: false, msg: `사전에 없는 단어입니다! (${word})` };
+            } catch (e) { return { valid: false, msg: "사전 네트워크 우회 통과" }; }
+            return { valid: true, meaning: "사전에 등록된 유효한 단어입니다." };
+        }
+
+        function startGame() { document.getElementById('current-word').innerText = currentWord; updateLivesUI(); setTurnUI(); }
+
+        function setTurnUI() {
+            clearInterval(timer);
+            const inputField = document.getElementById('word-input');
+            const submitBtn = document.getElementById('submit-btn');
+            if(isMyTurn) {
+                inputField.disabled = false; submitBtn.disabled = false;
+                document.getElementById('my-card').classList.add('active');
+                document.getElementById('opp-card').classList.remove('active');
+                inputField.focus(); startTimer();
+            } else {
+                inputField.disabled = true; submitBtn.disabled = true; inputField.value = '';
+                document.getElementById('opp-card').classList.add('active');
+                document.getElementById('my-card').classList.remove('active');
+                startTimer();
+            }
+        }
+
+        function updateLivesUI() {
+            document.getElementById('my-lives').innerText = myLives > 10 ? '👑 INF' : '❤️'.repeat(Math.max(0, myLives)) + '💔'.repeat(Math.max(0, 2 - myLives));
+            document.getElementById('opp-lives').innerText = '❤️'.repeat(Math.max(0, oppLives)) + '💔'.repeat(Math.max(0, 2 - oppLives));
+        }
+
+        function startTimer() {
+            timeLeft = MAX_TIME; const timerBar = document.getElementById('timer-bar');
+            timer = setInterval(() => {
+                if(activeHacks[6] && isMyTurn) timeLeft = MAX_TIME;
+                timeLeft -= 0.1; timerBar.style.width = `${(timeLeft / MAX_TIME) * 100}%`;
+                if(timeLeft <= 0) {
+                    clearInterval(timer);
+                    if(isMyTurn) { sendData({ type: 'GAME_OVER', winner: 'OPP', reason: '시간 초과로 패배하셨습니다!' }); endGame('LOSE', '시간 초과 패배!'); }
+                }
+            }, 100);
+        }
+
+        function handleWrongAnswer(msg) {
+            myLives--; updateLivesUI(); showSystemMsg(`${msg} [목숨 -1]`);
+            if (myLives <= 0) { sendData({ type: 'GAME_OVER', winner: 'OPP', reason: '목숨 소진 패배!' }); endGame('LOSE', '목숨 소진 패배!'); }
+            else { sendData({ type: 'WRONG_ANSWER', oppLives: myLives }); isMyTurn = false; setTurnUI(); }
+        }
+
+        async function submitWord() {
+            if(!isMyTurn) return;
+            const inputField = document.getElementById('word-input'); const word = inputField.value.trim();
+            if (!activeHacks[17]) {
+                const lastChar = currentWord.slice(-1); const allowedFirstChar = getInitialChar(lastChar);
+                if (word.charAt(0) !== lastChar && word.charAt(0) !== allowedFirstChar) { handleWrongAnswer(`'${lastChar}' 또는 '${allowedFirstChar}'로 시작해야 합니다.`); return; }
+            }
+            if (!activeHacks[15] && usedWords.has(word)) { handleWrongAnswer('이미 사용된 단어입니다.'); return; }
+            const dictCheck = await checkValidDictionary(word); if(!dictCheck.valid) { handleWrongAnswer(dictCheck.msg); return; }
+
+            usedWords.add(word);
+            let scoreBonus = activeHacks[21] ? (word.length * 100) : (word.length * 10);
+            myScore += scoreBonus; document.getElementById('my-score').innerText = myScore;
+            addHistory('my', word); currentWord = word;
+            document.getElementById('current-word').innerText = currentWord;
+            document.getElementById('word-meaning').innerText = dictCheck.meaning;
+            sendData({ type: 'TURN_PASS', word: word, oppScore: myScore, meaning: dictCheck.meaning });
+            isMyTurn = false; setTurnUI();
+        }
+
+        function addHistory(type, word) {
+            const box = document.getElementById('history-box'); const item = document.createElement('div'); item.className = 'history-item';
+            item.innerHTML = `<span style="color: ${type === 'my' ? 'var(--my-color)' : 'var(--opp-color)'}">${type==='my'?'나':'상대'}</span> <span>${word}</span>`;
+            box.insertBefore(item, box.firstChild);
+        }
+        function showSystemMsg(msg) { document.getElementById('system-msg').innerText = msg; }
+        function endGame(result, reason) { clearInterval(timer); document.getElementById('winner-title').innerText = result === 'WIN' ? '🏆 승리!' : '💀 패배...'; document.getElementById('game-over-reason').innerText = reason; document.getElementById('game-over-modal').style.display = 'flex'; }
+
+        document.getElementById('word-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') submitWord(); });
+        document.getElementById('submit-btn').addEventListener('click', submitWord);
+        
+        buildAdminPanels(); 
+        initNetwork();
+    </script>
+</body>
+</html>
